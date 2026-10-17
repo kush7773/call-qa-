@@ -41,6 +41,7 @@ interface AuditBannerProps {
   onSetVerdict: (verdict: Verdict) => void;
   onSubmit: () => void;
   onClear: () => void;
+  onRemoveEvidenceTurn: (annId: string, turnId: string) => void;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -58,8 +59,10 @@ export default function AuditBanner({
   onSetVerdict,
   onSubmit,
   onClear,
+  onRemoveEvidenceTurn,
 }: AuditBannerProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [userExpanded, setUserExpanded] = useState(false);
+  const isExpanded = userExpanded || Boolean(activeAnnotationId);
 
   // Counts by kind
   const counts = (Object.keys(KIND_CONFIG) as AnnotationKind[]).reduce(
@@ -68,8 +71,12 @@ export default function AuditBanner({
   );
   const totalIssues = counts.hallucination + counts.omission + counts.rule_breach;
 
-  // Auto-expand when first annotation is added
-  const handleToggle = useCallback(() => setIsExpanded(e => !e), []);
+  const handleToggle = useCallback(() => {
+    setUserExpanded(prev => !prev);
+    if (activeAnnotationId) {
+      onActivate(null);
+    }
+  }, [activeAnnotationId, onActivate]);
 
   return (
     <footer className="border-t border-slate-200 bg-white shadow-[0_-2px_10px_rgba(0,0,0,0.06)] z-10">
@@ -128,12 +135,16 @@ export default function AuditBanner({
                       {/* Evidence turn chips + severity toggle */}
                       <div className="flex items-center flex-wrap gap-1.5">
                         {ann.evidenceTurnIds.map(tid => (
-                          <span
+                          <button
                             key={tid}
-                            className="px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700 font-mono text-[10px]"
+                            type="button"
+                            onClick={() => onRemoveEvidenceTurn(ann.id, tid)}
+                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700 font-mono text-[10px] hover:bg-rose-100 hover:text-rose-700 transition-colors group cursor-pointer"
+                            title={`Click to remove turn ${tid} from evidence`}
                           >
-                            {tid}
-                          </span>
+                            <span>{tid}</span>
+                            <span className="text-indigo-400 group-hover:text-rose-600 font-sans">×</span>
+                          </button>
                         ))}
                         {ann.evidenceTurnIds.length === 0 && (
                           <span className="text-[10px] text-slate-300 italic">no evidence linked</span>

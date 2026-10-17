@@ -74,6 +74,13 @@ export default function App() {
     [call.id, activeAnnotationId, toggleEvidenceTurn],
   );
 
+  const handleRemoveEvidenceTurn = useCallback(
+    (annId: string, turnId: string) => {
+      toggleEvidenceTurn(call.id, annId, turnId);
+    },
+    [call.id, toggleEvidenceTurn],
+  );
+
   const handleUpdateNote = useCallback(
     (annId: string, note: string) => updateAnnotation(call.id, annId, { note }),
     [call.id, updateAnnotation],
@@ -227,6 +234,7 @@ export default function App() {
         onSetVerdict={handleSetVerdict}
         onSubmit={handleSubmit}
         onClear={handleClear}
+        onRemoveEvidenceTurn={handleRemoveEvidenceTurn}
       />
 
       {/* Slide-over Rules Reference Drawer */}
