@@ -1,4 +1,12 @@
-import { ChevronLeft, ChevronRight, Clock, Phone, CheckCircle2 } from 'lucide-react';
+import {
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  Phone,
+  CheckCircle2,
+  BookOpen,
+  DownloadCloud,
+} from 'lucide-react';
 import type { CallRecord, ReviewSession } from '../types';
 
 interface HeaderProps {
@@ -6,13 +14,22 @@ interface HeaderProps {
   currentIndex: number;
   sessions: Record<string, ReviewSession>;
   onNavigate: (index: number) => void;
+  onToggleRules: () => void;
+  onExportAll: () => void;
 }
 
 function inferDirection(summary: string): 'Inbound' | 'Outbound' {
   return summary.toLowerCase().includes('the company called') ? 'Outbound' : 'Inbound';
 }
 
-export default function Header({ calls, currentIndex, sessions, onNavigate }: HeaderProps) {
+export default function Header({
+  calls,
+  currentIndex,
+  sessions,
+  onNavigate,
+  onToggleRules,
+  onExportAll,
+}: HeaderProps) {
   const call = calls[currentIndex];
   const direction = inferDirection(call.summary);
 
@@ -26,8 +43,8 @@ export default function Header({ calls, currentIndex, sessions, onNavigate }: He
   });
 
   return (
-    <header className="flex items-center justify-between gap-4 px-5 py-2.5 bg-white border-b border-slate-200 shadow-sm">
-      {/* ── Brand + call ID ── */}
+    <header className="flex items-center justify-between gap-3 px-5 py-2.5 bg-white border-b border-slate-200 shadow-sm">
+      {/* ── Left: Brand + call ID ── */}
       <div className="flex items-center gap-3 min-w-0">
         <div className="flex items-center gap-2 shrink-0">
           <Phone className="w-4 h-4 text-indigo-600" />
@@ -80,8 +97,31 @@ export default function Header({ calls, currentIndex, sessions, onNavigate }: He
         </div>
       </div>
 
-      {/* ── Right: call navigator ── */}
+      {/* ── Right: rules checklist, export all, call navigator ── */}
       <div className="flex items-center gap-2 shrink-0">
+        {/* Rules button */}
+        <button
+          onClick={onToggleRules}
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors"
+          title="Open Summary Rules Checklist"
+        >
+          <BookOpen className="w-3.5 h-3.5 text-indigo-600" />
+          <span>Rules</span>
+        </button>
+
+        {/* Export All button */}
+        <button
+          onClick={onExportAll}
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition-colors"
+          title="Export JSON report of all reviewed calls"
+        >
+          <DownloadCloud className="w-3.5 h-3.5 text-indigo-600" />
+          <span>Export All ({reviewedCount})</span>
+        </button>
+
+        <div className="h-4 w-px bg-slate-200 mx-0.5" />
+
+        {/* Call navigator buttons */}
         <button
           onClick={() => onNavigate(currentIndex - 1)}
           disabled={currentIndex === 0}

@@ -1,14 +1,16 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { calls } from './data/calls';
 import { useReviews } from './hooks/useReviews';
 import Header from './components/Header';
 import TranscriptPane from './components/TranscriptPane';
 import SummaryPane from './components/SummaryPane';
 import AuditBanner from './components/AuditBanner';
+import RulesDrawer from './components/RulesDrawer';
 import type { AnnotationKind, Verdict } from './types';
 
 export default function App() {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [isRulesOpen, setIsRulesOpen] = useState(false);
   /** ID of the annotation currently active for evidence-turn linking. */
   const [activeAnnotationId, setActiveAnnotationId] = useState<string | null>(null);
 
@@ -26,6 +28,28 @@ export default function App() {
 
   const call = calls[currentIndex];
   const session = getSession(call.id);
+
+  // ── Keyboard shortcuts ──────────────────────────────────────────────────────
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't intercept if typing in an input
+      if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName)) return;
+
+      if (e.key === 'Escape') {
+        setIsRulesOpen(false);
+        setActiveAnnotationId(null);
+      } else if (e.key === '[' || (e.altKey && e.key === 'ArrowLeft')) {
+        setCurrentIndex(prev => Math.max(0, prev - 1));
+        setActiveAnnotationId(null);
+      } else if (e.key === ']' || (e.altKey && e.key === 'ArrowRight')) {
+        setCurrentIndex(prev => Math.min(calls.length - 1, prev + 1));
+        setActiveAnnotationId(null);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // ── Event handlers ──────────────────────────────────────────────────────────
 
@@ -76,7 +100,7 @@ export default function App() {
 
   const handleSubmit = useCallback(() => {
     submitReview(call.id);
-    // Download review as JSON
+    // Download single review as JSON
     const exportData = {
       callId: call.id,
       call_date: call.call_date,
@@ -93,6 +117,55 @@ export default function App() {
     anchor.click();
     URL.revokeObjectURL(url);
   }, [call, session, submitReview]);
+
+  const handleExportAll = useCallback(() => {
+    const reviewedCalls = calls.map(c => {
+      const s = sessions[c.id];
+      return {
+        callId: c.id,
+        call_date: c.call_date,
+        estimated_duration: c.estimated_duration,
+        isCompleted: !!s?.completedAt,
+        verdict: s?.verdict ?? null,
+        annotationsCount: s?.annotations.length ?? 0,
+        annotations: s?.annotations ?? [],
+        completedAt: s?.completedAt ?? null,
+      };
+    });
+
+    const completed = reviewedCalls.filter(c => c.isCompleted);
+
+    const stats = {
+      totalCalls: calls.length,
+      reviewedCallsCount: completed.length,
+      verdictDistribution: {
+        accurate: completed.filter(c => c.verdict === 'accurate').length,
+        inaccurate: completed.filter(c => c.verdict === 'inaccurate').length,
+        needs_review: completed.filter(c => c.verdict === 'needs_review').length,
+      },
+      annotationsBreakdown: {
+        totalAccurateTags: reviewedCalls.flatMap(c => c.annotations).filter(a => a.kind === 'accurate').length,
+        totalHallucinations: reviewedCalls.flatMap(c => c.annotations).filter(a => a.kind === 'hallucination').length,
+        totalOmissions: reviewedCalls.flatMap(c => c.annotations).filter(a => a.kind === 'omission').length,
+        totalRuleBreaches: reviewedCalls.flatMap(c => c.annotations).filter(a => a.kind === 'rule_breach').length,
+      },
+    };
+
+    const batchReport = {
+      exportTitle: 'SoundSense Call QA Evaluation Batch Report',
+      exportedAt: new Date().toISOString(),
+      statistics: stats,
+      calls: reviewedCalls,
+    };
+
+    const blob = new Blob([JSON.stringify(batchReport, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `soundsense-batch-review-report-${new Date().toISOString().split('T')[0]}.json`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }, [sessions]);
 
   const handleClear = useCallback(() => {
     clearReview(call.id);
@@ -114,6 +187,8 @@ export default function App() {
         currentIndex={currentIndex}
         sessions={sessions}
         onNavigate={handleNavigate}
+        onToggleRules={() => setIsRulesOpen(prev => !prev)}
+        onExportAll={handleExportAll}
       />
 
       <main className="flex flex-1 overflow-hidden">
@@ -152,6 +227,12 @@ export default function App() {
         onSetVerdict={handleSetVerdict}
         onSubmit={handleSubmit}
         onClear={handleClear}
+      />
+
+      {/* Slide-over Rules Reference Drawer */}
+      <RulesDrawer
+        isOpen={isRulesOpen}
+        onClose={() => setIsRulesOpen(false)}
       />
     </div>
   );
