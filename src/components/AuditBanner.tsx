@@ -3,7 +3,7 @@ import {
   ChevronUp, ChevronDown, Trash2, RotateCcw,
   CheckCheck, Link2, Download,
 } from 'lucide-react';
-import { KIND_CONFIG } from './SummaryPane';
+import { KIND_CONFIG } from '../constants/annotationConfig';
 import type { Annotation, AnnotationKind, Verdict } from '../types';
 
 // ─── Verdict config ───────────────────────────────────────────────────────────
@@ -46,7 +46,7 @@ interface AuditBannerProps {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function AuditBanner({
-  callId: _callId,
+  callId,
   annotations,
   verdict,
   completedAt,
@@ -76,6 +76,10 @@ export default function AuditBanner({
       {/* ── Expanded panel ─────────────────────────────────────────────────── */}
       {isExpanded && (
         <div className="border-b border-slate-100 max-h-60 overflow-y-auto">
+          <div className="px-4 py-2 bg-slate-50 border-b border-slate-100 flex items-center justify-between text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+            <span>Review Items ({callId})</span>
+            <span>{annotations.length} items logged</span>
+          </div>
           {annotations.length === 0 ? (
             <div className="flex items-center justify-center py-8 text-sm text-slate-400 italic">
               No annotations yet — select text in the summary or click "Add Omission".
