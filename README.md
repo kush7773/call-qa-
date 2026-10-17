@@ -2,6 +2,8 @@
 
 A specialized evaluation surface for human reviewers to audit AI-generated call summaries against raw transcripts for vehicle finance collections calls.
 
+📖 **[Read the Full User & Evaluator Guide →](./USER_GUIDE.md)**
+
 ## Features
 
 - **Split-Screen Review Workspace**: Full height, side-by-side view of raw transcripts and AI-generated summaries.
